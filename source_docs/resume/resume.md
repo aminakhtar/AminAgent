@@ -28,3 +28,10 @@ Context: Integrate Acumatica REST API to Agorus backend system.
 What I did: I connected Agorus warehouse system to our inventory system on Acumatica.
 Impact: Made the planning of the project more efficient. The business ran smoothly without manually entering the number of item. Improved inventory system and reduced the time by 4 hours for 2 people in each day.
 Keywords: Acumatica, REST API integration, improving the process
+
+Title: Kubernetes cluster, Best Buy (Geek Squad)
+Date range: Oct 2022 – Apr 2023
+Context: Designed microservices architecture powering Geek Squad installment orders in the Geek Squad mobile app
+What I did: I implemented real-time inventory and resource availability validation ensuring orders only created when stock, technician capacity, and driver availability confirmed 
+Impact: Processed 25K+ monthly installment orders with 99.9% 
+Keywords: Kubernetes, REST API integration, improving the process, Best Buy, Geek Squad, microservices

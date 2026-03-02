@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subscription, timeout } from 'rxjs';
 
@@ -73,7 +73,18 @@ export class App {
     }
   ];
 
-  constructor(private readonly http: HttpClient) {}
+  constructor(
+    private readonly http: HttpClient,
+    private readonly zone: NgZone,
+    private readonly cdr: ChangeDetectorRef,
+  ) {}
+
+  private updateUiSafely(update: () => void): void {
+    this.zone.run(() => {
+      update();
+      this.cdr.detectChanges();
+    });
+  }
 
   sendMessage(): void {
     const text = this.messageInput.trim();
@@ -110,14 +121,16 @@ export class App {
         .pipe(timeout({ first: this.requestTimeoutMs }))
         .subscribe({
           next: (response) => {
-            this.messages.push({
-              role: 'assistant',
-              text: response.answer,
-              sources: response.sources,
-              fallback: response.used_fallback,
-              latencyMs: response.latency_ms
+            this.updateUiSafely(() => {
+              this.messages.push({
+                role: 'assistant',
+                text: response.answer,
+                sources: response.sources,
+                fallback: response.used_fallback,
+                latencyMs: response.latency_ms
+              });
+              this.loading = false;
             });
-            this.loading = false;
           },
           error: (err) => {
             if (!usedRetry && this.shouldRetryAlternate(err)) {
@@ -126,12 +139,14 @@ export class App {
               return;
             }
 
-            if (err?.name === 'TimeoutError') {
-              this.error = `Request timed out after ${Math.round(this.requestTimeoutMs / 1000)}s. Try shorter question, lower history/topK, or switch direct/API mode.`;
-            } else {
-              this.error = err?.error?.detail || err?.error?.error || err?.message || 'Request failed. Check API and RAG services.';
-            }
-            this.loading = false;
+            this.updateUiSafely(() => {
+              if (err?.name === 'TimeoutError') {
+                this.error = `Request timed out after ${Math.round(this.requestTimeoutMs / 1000)}s. Try shorter question, lower history/topK, or switch direct/API mode.`;
+              } else {
+                this.error = err?.error?.detail || err?.error?.error || err?.message || 'Request failed. Check API and RAG services.';
+              }
+              this.loading = false;
+            });
           }
         });
     };
@@ -154,7 +169,9 @@ export class App {
       return;
     }
     this.activeRequest.unsubscribe();
-    this.loading = false;
-    this.error = 'Request cancelled.';
+    this.updateUiSafely(() => {
+      this.loading = false;
+      this.error = 'Request cancelled.';
+    });
   }
 }
