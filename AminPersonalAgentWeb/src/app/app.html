@@ -1,0 +1,72 @@
+<main class="page">
+  <header class="header">
+    <h1>{{ title }}</h1>
+    <p>Frontend connected to {{ apiBaseUrl }}/api/chat</p>
+  </header>
+
+  <section class="controls">
+    <label>
+      Session ID
+      <input type="text" [(ngModel)]="sessionId" />
+    </label>
+
+    <label>
+      History Turns
+      <input type="number" min="0" max="20" [(ngModel)]="historyTurns" />
+    </label>
+
+    <label>
+      Top K
+      <input type="number" min="1" max="10" [(ngModel)]="topK" />
+    </label>
+
+    <label>
+      Timeout (seconds)
+      <input type="number" min="10" max="600" [ngModel]="requestTimeoutMs / 1000" (ngModelChange)="requestTimeoutMs = $event * 1000" />
+    </label>
+
+    <label class="toggle-row">
+      <input type="checkbox" [(ngModel)]="useDirectRagApi" />
+      Use direct RAG API (8091)
+    </label>
+  </section>
+
+  <section class="chat-box">
+    <article class="message" *ngFor="let message of messages" [class.user]="message.role === 'user'">
+      <div class="bubble">
+        <div class="role">{{ message.role === 'user' ? 'You' : 'Agent' }}</div>
+        <pre class="text">{{ message.text }}</pre>
+
+        <div class="meta" *ngIf="message.role === 'assistant'">
+          <span *ngIf="message.latencyMs !== undefined">Latency: {{ message.latencyMs }} ms</span>
+          <span *ngIf="message.fallback">Fallback: facts-only</span>
+        </div>
+
+        <div class="sources" *ngIf="message.sources?.length">
+          <div class="sources-title">Sources</div>
+          <ul>
+            <li *ngFor="let source of message.sources">
+              {{ source.fact }} · {{ source.source_file }} · {{ source.title }}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <div class="status" *ngIf="loading">Thinking...</div>
+    <div class="status error" *ngIf="error">{{ error }}</div>
+  </section>
+
+  <section class="composer">
+    <textarea
+      rows="3"
+      placeholder="Ask a question about your background..."
+      [(ngModel)]="messageInput"
+      (keydown.enter)="$event.preventDefault(); sendMessage()"
+    ></textarea>
+    <div class="actions">
+      <button (click)="sendMessage()" [disabled]="loading || !messageInput.trim()">Send</button>
+      <button class="secondary" (click)="cancelRequest()" [disabled]="!loading">Stop</button>
+    </div>
+  </section>
+</main>

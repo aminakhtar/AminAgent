@@ -1,0 +1,60 @@
+# ---- OS / Editor ----
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/mcp.json
+.idea/
+
+# Keep selected VS Code files in Angular app too
+AminPersonalAgentWeb/.vscode/*
+!AminPersonalAgentWeb/.vscode/settings.json
+!AminPersonalAgentWeb/.vscode/tasks.json
+!AminPersonalAgentWeb/.vscode/launch.json
+!AminPersonalAgentWeb/.vscode/extensions.json
+!AminPersonalAgentWeb/.vscode/mcp.json
+
+# Keep selected VS Code files in API app too
+AminPersonalAgentApi/.vscode/*
+!AminPersonalAgentApi/.vscode/settings.json
+!AminPersonalAgentApi/.vscode/tasks.json
+!AminPersonalAgentApi/.vscode/launch.json
+!AminPersonalAgentApi/.vscode/extensions.json
+!AminPersonalAgentApi/.vscode/mcp.json
+
+# ---- Python ----
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# ---- Environment / secrets ----
+.env
+.env.*
+!.env.example
+
+# ---- Local runtime data ----
+sessions/
+*.log
+
+# ---- .NET ----
+**/bin/
+**/obj/
+**/.vs/
+
+# ---- Node / Angular ----
+**/node_modules/
+**/dist/
+**/.angular/
+
+# ---- Coverage / temp ----
+coverage/
+*.tmp
+*.temp

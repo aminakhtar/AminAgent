@@ -1,0 +1,22 @@
+@AminPersonalAgentApi_HostAddress = http://localhost:5231
+
+GET {{AminPersonalAgentApi_HostAddress}}/health
+Accept: application/json
+
+###
+
+POST {{AminPersonalAgentApi_HostAddress}}/api/chat
+Content-Type: application/json
+
+{
+	"message": "What is Drink Tracker?",
+	"sessionId": "amin_api_test",
+	"historyTurns": 4,
+	"topK": 3,
+	"llmProvider": "openai-compatible",
+	"llmUrl": "http://127.0.0.1:8080",
+	"llmModel": "llama",
+	"debugPrompt": false
+}
+
+###
