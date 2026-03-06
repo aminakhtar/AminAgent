@@ -1,6 +1,6 @@
 # Preferences
 
-Title: ASP.NET Core, Entiry Framework, SQL Server, Azure, AWS Developer
+Title: ASP.NET Core, Entity Framework, SQL Server, Azure, AWS Developer
 Date range: 2015 to 2026
 Context: Tech stack preference
 What I did: I worked with ASP.NET Core, .NET, and SQL Server to develop  a lot of APIs, end to end SAAS systems 

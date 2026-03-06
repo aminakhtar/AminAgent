@@ -164,3 +164,59 @@ Optional (skip validation):
 │  │ - source_docs/ (facts)                 │   │
 │  └────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────┘
+# Service structure
+amin-rag-data/
+├── scripts/                    ← Python RAG Service
+│   ├── rag_service.py
+│   ├── rag_answer.py
+│   ├── index_chroma.py
+│   └── validate_queries.py
+│
+├── AminPersonalAgentApi/       ← ASP.NET Backend API
+│   ├── Program.cs
+│   ├── AminPersonalAgentApi.csproj
+│   └── ...
+│
+├── AminPersonalAgentWeb/       ← Angular Frontend SPA
+│   ├── src/
+│   ├── package.json
+│   └── ...
+│
+├── source_docs/                ← Your Facts/Knowledge Base
+│   ├── resume/
+│   ├── projects/
+│   ├── personal/
+│   └── ...
+│
+└── sessions/                   ← Session Data (local)
+    └── rag_sessions.json
+
+# deployment strategy
+Files/Folders to Push
+✅ Code:
+
+scripts (Python RAG service)
+AminPersonalAgentApi (ASP.NET backend)
+dist (built Angular)
+Dockerfile (for each service)
+docker-compose.yml (orchestration)
+✅ Data:
+
+source_docs (markdown facts)
+sessions (session history)
+❌ Don't Push:
+
+.venv (recreate on cloud)
+bin/obj/ (rebuild on cloud)
+node_modules/ (npm install on cloud)
+Local config files with hardcoded paths
+Deployment Order
+Create Oracle Cloud infrastructure (VCN, security groups, block storage)
+Set up Docker on instance
+Push Docker images or source code
+Deploy in order:
+Llama.cpp container (port 8080)
+Python RAG service (port 8091)
+ASP.NET API (port 5231)
+Angular SPA via Nginx (port 80/443)
+Summary: 4 main services (Python RAG, ASP.NET, Angular, Llama.cpp) + Nginx + Chroma DB = Complete deployment.
