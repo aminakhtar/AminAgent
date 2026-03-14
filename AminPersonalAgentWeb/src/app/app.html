@@ -1,29 +1,43 @@
 <main class="page">
-  <header class="header">
+  <div class="bg-orb orb-a" aria-hidden="true"></div>
+  <div class="bg-orb orb-b" aria-hidden="true"></div>
+
+  <header class="header panel">
+    <p class="eyebrow">Personal Knowledge Copilot</p>
     <h1>{{ title }}</h1>
-    <p>Frontend connected to {{ apiBaseUrl }}/api/chat</p>
+    <p class="subline">Connected to {{ apiBaseUrl }}/api/chat</p>
   </header>
 
-  <section class="controls">
-    <label>
-      Session ID
-      <input type="text" [(ngModel)]="sessionId" />
-    </label>
+  <section class="controls panel">
+    <h2>Runtime Controls</h2>
 
-    <label>
-      History Turns
-      <input type="number" min="0" max="20" [(ngModel)]="historyTurns" />
-    </label>
+    <div class="control-grid">
+      <label>
+        Session ID
+        <input type="text" [(ngModel)]="sessionId" />
+      </label>
 
-    <label>
-      Top K
-      <input type="number" min="1" max="10" [(ngModel)]="topK" />
-    </label>
+      <label>
+        History Turns
+        <input type="number" min="0" max="20" [(ngModel)]="historyTurns" />
+      </label>
 
-    <label>
-      Timeout (seconds)
-      <input type="number" min="10" max="600" [ngModel]="requestTimeoutMs / 1000" (ngModelChange)="requestTimeoutMs = $event * 1000" />
-    </label>
+      <label>
+        Top K
+        <input type="number" min="1" max="10" [(ngModel)]="topK" />
+      </label>
+
+      <label>
+        Timeout (seconds)
+        <input
+          type="number"
+          min="10"
+          max="600"
+          [ngModel]="requestTimeoutMs / 1000"
+          (ngModelChange)="requestTimeoutMs = $event * 1000"
+        />
+      </label>
+    </div>
 
     <label class="toggle-row">
       <input type="checkbox" [(ngModel)]="useDirectRagApi" />
@@ -31,7 +45,7 @@
     </label>
   </section>
 
-  <section class="chat-box">
+  <section class="chat-box panel">
     <article class="message" *ngFor="let message of messages" [class.user]="message.role === 'user'">
       <div class="bubble">
         <div class="role">{{ message.role === 'user' ? 'You' : 'Agent' }}</div>
@@ -57,10 +71,10 @@
     <div class="status error" *ngIf="error">{{ error }}</div>
   </section>
 
-  <section class="composer">
+  <section class="composer panel">
     <textarea
       rows="3"
-      placeholder="Ask a question about your background..."
+      placeholder="Ask about your projects, leadership impact, stack, or achievements..."
       [(ngModel)]="messageInput"
       (keydown.enter)="$event.preventDefault(); sendMessage()"
     ></textarea>
