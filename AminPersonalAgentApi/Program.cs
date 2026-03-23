@@ -83,6 +83,7 @@ app.MapPost("/api/chat", async (
         api_key: request.ApiKey ?? string.Empty,
         temperature: request.Temperature ?? options.DefaultTemperature,
         facts_only: request.FactsOnly ?? false,
+        persona_only: request.PersonaOnly ?? false,
         debug_prompt: request.DebugPrompt ?? false
     );
 
@@ -127,6 +128,7 @@ public sealed record ChatRequest(
     string? ApiKey,
     double? Temperature,
     bool? FactsOnly,
+    bool? PersonaOnly,
     bool? DebugPrompt
 );
 
@@ -141,6 +143,7 @@ public sealed record RagChatRequest(
     string api_key,
     double temperature,
     bool facts_only,
+    bool persona_only,
     bool debug_prompt
 );
 

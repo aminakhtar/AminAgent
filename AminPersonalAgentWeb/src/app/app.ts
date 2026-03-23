@@ -16,7 +16,22 @@ interface ChatRequest {
   llmModel: string;
   temperature: number;
   factsOnly: boolean;
+  personaOnly: boolean;
   debugPrompt: boolean;
+}
+
+interface DirectChatRequest {
+  message: string;
+  session_id: string;
+  history_turns: number;
+  top_k: number;
+  llm_provider: string;
+  llm_url: string;
+  llm_model: string;
+  temperature: number;
+  facts_only: boolean;
+  persona_only: boolean;
+  debug_prompt: boolean;
 }
 
 interface SourceItem {
@@ -53,10 +68,19 @@ interface UiMessage {
 })
 export class App {
   protected readonly title = 'Amin Personal Agent';
+  protected readonly suggestedQuestions = [
+    'What leadership impact did I deliver?',
+    'What is Drink Tracker and why did I build it?',
+    'What technologies do I use the most?',
+    'What achievements best represent my work?',
+    'Summarize my recent experience in one paragraph.',
+    'What kinds of projects do I enjoy building?'
+  ];
 
   apiBaseUrl = environment.apiBaseUrl;
-  directRagBaseUrl = 'http://127.0.0.1:8091';
+  directRagBaseUrl = 'http://127.0.0.1:8090';
   useDirectRagApi = true;
+  personaOnly = true;
   messageInput = '';
   sessionId = 'amin_web_session';
   historyTurns = 2;
@@ -65,6 +89,9 @@ export class App {
   loading = false;
   error = '';
   private activeRequest?: Subscription;
+  private questionHistory: string[] = [];
+  private historyCursor = -1;
+  private historyDraft = '';
 
   messages: UiMessage[] = [
     {
@@ -86,38 +113,102 @@ export class App {
     });
   }
 
+  useSuggestedQuestion(question: string): void {
+    if (this.loading) {
+      return;
+    }
+
+    this.messageInput = question;
+    this.resetHistoryNavigation();
+  }
+
+  onComposerKeydown(event: KeyboardEvent): void {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      this.sendMessage();
+      return;
+    }
+
+    const target = event.target as HTMLTextAreaElement | null;
+    if (!target || event.altKey || event.ctrlKey || event.metaKey) {
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      const atStart = target.selectionStart === 0 && target.selectionEnd === 0;
+      if (atStart) {
+        event.preventDefault();
+        this.navigateHistory(-1, target);
+      }
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      const atEnd = target.selectionStart === target.value.length && target.selectionEnd === target.value.length;
+      if (atEnd) {
+        event.preventDefault();
+        this.navigateHistory(1, target);
+      }
+    }
+  }
+
   sendMessage(): void {
     const text = this.messageInput.trim();
     if (!text || this.loading) {
       return;
     }
 
+    if (this.questionHistory.length === 0 || this.questionHistory[this.questionHistory.length - 1] !== text) {
+      this.questionHistory.push(text);
+    }
+    this.resetHistoryNavigation();
+
     this.error = '';
     this.messages.push({ role: 'user', text });
 
-    const payload: ChatRequest = {
+    const sessionId = this.sessionId.trim() || 'amin_web_session';
+    const historyTurns = Math.max(0, Math.min(this.historyTurns, 6));
+    const topK = Math.max(1, Math.min(this.topK, 6));
+
+    const apiPayload: ChatRequest = {
       message: text,
-      sessionId: this.sessionId.trim() || 'amin_web_session',
-      historyTurns: Math.max(0, Math.min(this.historyTurns, 6)),
-      topK: Math.max(1, Math.min(this.topK, 6)),
+      sessionId,
+      historyTurns,
+      topK,
       llmProvider: 'openai-compatible',
       llmUrl: 'http://127.0.0.1:8080',
       llmModel: 'llama',
       temperature: 0.2,
       factsOnly: false,
+      personaOnly: this.personaOnly,
       debugPrompt: false
+    };
+
+    const directPayload: DirectChatRequest = {
+      message: text,
+      session_id: sessionId,
+      history_turns: historyTurns,
+      top_k: topK,
+      llm_provider: 'openai-compatible',
+      llm_url: 'http://127.0.0.1:8080',
+      llm_model: 'llama',
+      temperature: 0.2,
+      facts_only: false,
+      persona_only: this.personaOnly,
+      debug_prompt: false
     };
 
     this.loading = true;
     this.messageInput = '';
 
-    const primaryEndpoint = this.useDirectRagApi ? `${this.directRagBaseUrl}/chat` : `${this.apiBaseUrl}/api/chat`;
-    const fallbackEndpoint = this.useDirectRagApi ? `${this.apiBaseUrl}/api/chat` : `${this.directRagBaseUrl}/chat`;
+    const primaryUsesDirect = this.useDirectRagApi;
+    const primaryEndpoint = primaryUsesDirect ? `${this.directRagBaseUrl}/chat` : `${this.apiBaseUrl}/api/chat`;
+    const fallbackEndpoint = primaryUsesDirect ? `${this.apiBaseUrl}/api/chat` : `${this.directRagBaseUrl}/chat`;
     let usedRetry = false;
 
-    const execute = (endpoint: string): void => {
+    const execute = (endpoint: string, body: ChatRequest | DirectChatRequest): void => {
       this.activeRequest = this.http
-        .post<ChatResponse>(endpoint, payload)
+        .post<ChatResponse>(endpoint, body)
         .pipe(timeout({ first: this.requestTimeoutMs }))
         .subscribe({
           next: (response) => {
@@ -135,7 +226,7 @@ export class App {
           error: (err) => {
             if (!usedRetry && this.shouldRetryAlternate(err)) {
               usedRetry = true;
-              execute(fallbackEndpoint);
+              execute(fallbackEndpoint, primaryUsesDirect ? apiPayload : directPayload);
               return;
             }
 
@@ -151,7 +242,38 @@ export class App {
         });
     };
 
-    execute(primaryEndpoint);
+    execute(primaryEndpoint, primaryUsesDirect ? directPayload : apiPayload);
+  }
+
+  private navigateHistory(direction: -1 | 1, textarea: HTMLTextAreaElement): void {
+    if (this.questionHistory.length === 0) {
+      return;
+    }
+
+    if (this.historyCursor === -1) {
+      this.historyCursor = this.questionHistory.length;
+      this.historyDraft = this.messageInput;
+    }
+
+    const nextCursor = this.historyCursor + direction;
+    if (nextCursor < 0 || nextCursor > this.questionHistory.length) {
+      return;
+    }
+
+    this.historyCursor = nextCursor;
+    this.messageInput = nextCursor === this.questionHistory.length
+      ? this.historyDraft
+      : this.questionHistory[nextCursor];
+
+    setTimeout(() => {
+      const pos = this.messageInput.length;
+      textarea.setSelectionRange(pos, pos);
+    });
+  }
+
+  private resetHistoryNavigation(): void {
+    this.historyCursor = -1;
+    this.historyDraft = '';
   }
 
   private shouldRetryAlternate(err: unknown): boolean {

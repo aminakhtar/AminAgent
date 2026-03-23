@@ -41,46 +41,70 @@
 
     <label class="toggle-row">
       <input type="checkbox" [(ngModel)]="useDirectRagApi" />
-      Use direct RAG API (8091)
+      Use direct RAG API (8090)
+    </label>
+
+    <label class="toggle-row">
+      <input type="checkbox" [(ngModel)]="personaOnly" />
+      Restrict to Amin's facts only 🔒
     </label>
   </section>
 
-  <section class="chat-box panel">
-    <article class="message" *ngFor="let message of messages" [class.user]="message.role === 'user'">
-      <div class="bubble">
-        <div class="role">{{ message.role === 'user' ? 'You' : 'Agent' }}</div>
-        <pre class="text">{{ message.text }}</pre>
+  <div class="workspace-grid">
+    <aside class="question-rail panel">
+      <div class="rail-heading">Starter Questions</div>
+      <p class="rail-copy">Click any prompt to paste it into the chat box.</p>
 
-        <div class="meta" *ngIf="message.role === 'assistant'">
-          <span *ngIf="message.latencyMs !== undefined">Latency: {{ message.latencyMs }} ms</span>
-          <span *ngIf="message.fallback">Fallback: facts-only</span>
+      <button
+        type="button"
+        class="question-chip"
+        *ngFor="let question of suggestedQuestions"
+        (click)="useSuggestedQuestion(question)"
+        [disabled]="loading"
+      >
+        {{ question }}
+      </button>
+    </aside>
+
+    <div class="chat-column">
+      <section class="chat-box panel">
+        <article class="message" *ngFor="let message of messages" [class.user]="message.role === 'user'">
+          <div class="bubble">
+            <div class="role">{{ message.role === 'user' ? 'You' : 'Agent' }}</div>
+            <pre class="text">{{ message.text }}</pre>
+
+            <div class="meta" *ngIf="message.role === 'assistant'">
+              <span *ngIf="message.latencyMs !== undefined">Latency: {{ message.latencyMs }} ms</span>
+              <span *ngIf="message.fallback">Fallback: facts-only</span>
+            </div>
+
+            <div class="sources" *ngIf="message.sources?.length">
+              <div class="sources-title">Sources</div>
+              <ul>
+                <li *ngFor="let source of message.sources">
+                  {{ source.fact }} · {{ source.source_file }} · {{ source.title }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <div class="status" *ngIf="loading">Thinking...</div>
+        <div class="status error" *ngIf="error">{{ error }}</div>
+      </section>
+
+      <section class="composer panel">
+        <textarea
+          rows="3"
+          placeholder="Ask about your projects, leadership impact, stack, or achievements..."
+          [(ngModel)]="messageInput"
+          (keydown)="onComposerKeydown($event)"
+        ></textarea>
+        <div class="actions">
+          <button (click)="sendMessage()" [disabled]="loading || !messageInput.trim()">Send</button>
+          <button class="secondary" (click)="cancelRequest()" [disabled]="!loading">Stop</button>
         </div>
-
-        <div class="sources" *ngIf="message.sources?.length">
-          <div class="sources-title">Sources</div>
-          <ul>
-            <li *ngFor="let source of message.sources">
-              {{ source.fact }} · {{ source.source_file }} · {{ source.title }}
-            </li>
-          </ul>
-        </div>
-      </div>
-    </article>
-
-    <div class="status" *ngIf="loading">Thinking...</div>
-    <div class="status error" *ngIf="error">{{ error }}</div>
-  </section>
-
-  <section class="composer panel">
-    <textarea
-      rows="3"
-      placeholder="Ask about your projects, leadership impact, stack, or achievements..."
-      [(ngModel)]="messageInput"
-      (keydown.enter)="$event.preventDefault(); sendMessage()"
-    ></textarea>
-    <div class="actions">
-      <button (click)="sendMessage()" [disabled]="loading || !messageInput.trim()">Send</button>
-      <button class="secondary" (click)="cancelRequest()" [disabled]="!loading">Stop</button>
+      </section>
     </div>
-  </section>
+  </div>
 </main>

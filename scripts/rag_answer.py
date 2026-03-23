@@ -252,7 +252,18 @@ def build_history_context(recent_turns: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def build_system_prompt() -> str:
+def build_system_prompt(persona_only: bool = False) -> str:
+    if persona_only:
+        return (
+            "You are Amin's personal AI assistant. "
+            "You may ONLY answer questions about Amin — his background, experience, skills, projects, and achievements. "
+            "Use only the provided FACT blocks as your source of truth. "
+            "Never invent achievements, dates, technologies, or employers not present in FACTS. "
+            "If the question is not about Amin, respond exactly: "
+            "'I can only answer questions about Amin\\'s background and experience. "
+            "Please ask me something about Amin.' "
+            "Do not answer general knowledge, programming, or off-topic questions under any circumstances."
+        )
     return (
         "You are a grounded assistant for a personal background agent. "
         "Use only the provided FACT blocks. "
@@ -276,6 +287,29 @@ def build_user_prompt(question: str, context: str, recent_turns: List[Dict[str, 
         "If a fact is missing, explicitly state what is missing. "
         "End with a short Sources list like: Sources: [FACT 1], [FACT 2]."
     )
+
+
+def sanitize_model_output(text: str, user_prompt: str) -> str:
+    cleaned = text.strip()
+
+    # Some completion endpoints can echo the full prompt before the answer.
+    if cleaned.startswith(user_prompt):
+        cleaned = cleaned[len(user_prompt):].lstrip()
+
+    # Remove repeated prompt scaffolding if the model echoes it mid-response.
+    if "Recent user context:" in cleaned and "FACTS:" in cleaned:
+        prompt_start = cleaned.find("Recent user context:")
+        if prompt_start == 0:
+            last_facts = cleaned.rfind("FACTS:")
+            if last_facts >= 0:
+                trailing = cleaned[last_facts:]
+                sources_marker = trailing.rfind("Sources:")
+                if sources_marker > 0:
+                    cleaned = trailing[sources_marker:].strip()
+                else:
+                    cleaned = ""
+
+    return cleaned.strip()
 
 
 def call_openai_compatible(
@@ -323,7 +357,7 @@ def call_openai_compatible(
         raise RuntimeError("LLM response did not include choices.")
 
     message = choices[0].get("message", {})
-    text = str(message.get("content", "")).strip()
+    text = sanitize_model_output(str(message.get("content", "")).strip(), user_prompt)
     if not text:
         raise RuntimeError("LLM returned an empty message content.")
     return text
@@ -342,6 +376,7 @@ def call_llama_cpp_completion(
         "prompt": merged_prompt,
         "temperature": temperature,
         "n_predict": 220,
+        "echo": False,
     }
 
     request = urllib.request.Request(
@@ -360,7 +395,7 @@ def call_llama_cpp_completion(
         ) from exc
 
     parsed = json.loads(body)
-    text = str(parsed.get("content", "")).strip()
+    text = sanitize_model_output(str(parsed.get("content", "")).strip(), user_prompt)
     if not text:
         raise RuntimeError("llama.cpp completion endpoint returned empty content.")
     return text

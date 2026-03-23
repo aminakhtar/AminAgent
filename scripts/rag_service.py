@@ -27,6 +27,7 @@ class ChatRequest(BaseModel):
     api_key: str = Field(default="")
     temperature: float = Field(default=0.2, ge=0.0, le=2.0)
     facts_only: bool = Field(default=False)
+    persona_only: bool = Field(default=False)
     debug_prompt: bool = Field(default=False)
 
 
@@ -415,7 +416,7 @@ def chat(request: ChatRequest) -> ChatResponse:
             )
 
         context = core.build_context(retrieval_result)
-        system_prompt = core.build_system_prompt()
+        system_prompt = core.build_system_prompt(persona_only=request.persona_only)
         user_prompt = core.build_user_prompt(request.message, context, recent_turns)
 
         used_fallback = False
